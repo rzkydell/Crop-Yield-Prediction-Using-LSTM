@@ -1,0 +1,26 @@
+# Lingkungan Python
+__pycache__/
+*.py[cod]
+
+# Virtual Environment
+venv/
+.env/
+env/
+
+# Streamlit config (if you don't want to expose themes)
+# .streamlit/
+
+# Dataset Rahasia (PENTING)
+# Mengabaikan semua CSV kecuali jika Anda ingin menampilkan dummy data
+dataset/*.csv
+
+# Artefak Model Berat (PENTING)
+# Github memiliki batas upload 100MB, Keras model bisa sangat besar.
+# Selain itu, bobot model biasanya termasuk Hak Kekayaan Intelektual eksperimen.
+models/*.keras
+models/*.pkl
+
+# Temp files
+*.log
+temp_*.txt
+.DS_Store

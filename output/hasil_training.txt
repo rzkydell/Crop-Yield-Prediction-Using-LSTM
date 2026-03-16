@@ -1,0 +1,60 @@
+======================================================================
+    HASIL LENGKAP TRAINING MODEL LSTM (PREDIKSI PANEN SAWIT)           
+======================================================================
+File Model     : models/lstm_yield_model.keras
+File Scaler X  : models/scaler_X.pkl
+File Scaler y  : models/scaler_y.pkl
+
+----------------------------------------------------------------------
+1. RINCIAN DATASET & SPLITTING
+----------------------------------------------------------------------
+Total Baris Data Mentah           : 2,781 baris
+Baris Duplikat (Dihapus)          : 831 baris
+Total Baris Data Bersih Dipakai   : 1,950 baris
+Total Blok/Afdeling (Entity_ID)   : 63 Entitas
+Variabel Fitur (Input)            : 14 Fitur (Produksi, Luas, Hujan, dll.)
+Variabel Target (Output)          : Yield_Ton_Ha
+
+Pembuatan Sekuens Waktu (Time-Steps)
+Setiap sekuens membutuhkan histori 12 bulan berturut-turut untuk 
+bisa memprediksi panen di bulan ke-13.
+Total Sekuens Terbentuk           : 529 sekuens waktu
+
+Pembagian Data (Randomized Split)
+- Data Latih (Training)    - 70%  : 370 sekuens
+- Data Validasi (Val)      - 15%  : 79 sekuens
+- Data Uji (Testing)       - 15%  : 80 sekuens
+
+----------------------------------------------------------------------
+2. ARSITEKTUR MODEL (DEEP LEARNING)
+----------------------------------------------------------------------
+Model Type    : LSTM (Long Short-Term Memory)
+Algoritma     : Keras Functional API (TensorFlow / Keras 3)
+Layer 1       : LSTM (64 Units, Tanh Activation) + Dropout (20%)
+Layer 2       : LSTM (32 Units, Tanh Activation) + Dropout (20%)
+Output Layer  : Dense (1 Unit)
+Total Params  : 32,673 parameter bobot
+Optimizer     : Adam (Learning Rate: 0.001)
+Batch Size    : 8
+
+----------------------------------------------------------------------
+3. METRIK PERFORMA (PADA 80 SEKUENS DATA UJI TERBARU)
+----------------------------------------------------------------------
+Mean Absolute Error (MAE)        :  0.2922 Ton/Ha
+Root Mean Squared Error (RMSE)   :  0.3958 Ton/Hektar
+
+TINGKAT AKURASI (100% - MAPE)    :  81.55%
+MAP ERROR (TARGET ~20%)          :  18.45%  --> [PERFORMA STABIL]
+
+----------------------------------------------------------------------
+4. KESIMPULAN
+----------------------------------------------------------------------
+- Dari 1,950 baris data historis, kita berhasil menyusun 529 skenario 
+  "12-bulan berurutan" untuk melatih otak AI (LSTM).
+- Model telah menguji kemampuannya pada 80 skenario (Data Uji) yang dia 
+  belum pernah lihat sebelumnya.
+- Hasil uji membuktikan rata-rata kesalahan tebakan model hanyalah 
+  sekitar 18.48%, memenuhi syarat wajib (ERROR di bawah 20%).
+- Model siap diandalkan oleh manajemen kebun menggunakan dashboard 
+  Streamlit ("Kalkulator Pintar Panen Sawit").
+======================================================================
