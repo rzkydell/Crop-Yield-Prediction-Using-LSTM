@@ -1,101 +1,98 @@
-# 🌴 Prediksi Hasil Panen Kelapa Sawit Berbasis AI (LSTM)
+# Oil Palm Yield Prediction with LSTM
 
-Repositori ini berisi skrip pemrosesan data, pelatihan model *Deep Learning* (LSTM), dan aplikasi *dashboard web* interaktif (Streamlit) yang dikembangkan untuk memprediksi **Hasil Panen Sawit (Yield Ton/Ha)** berdasarkan data historis 12 bulan terakhir.
+Predicts oil palm **yield (tons per hectare)** for a plantation block from its previous 12 months of operational and climate data, using a two-layer LSTM network. A Streamlit dashboard turns the model into a simple calculator that non-technical plantation staff can use.
 
-Proyek ini dibangun berdasarkan kombinasi Laporan Operasional Kebun (Produksi, Luas Lahan, Umur Pohon) dan Data Iklim (Curah Hujan & Hari Hujan), dengan mengimplementasikan teknik *Lagging Features* untuk menangkap memori fisiologis tanaman kelapa sawit terhadap cuaca di masa lampau.
+![Python](https://img.shields.io/badge/Python-3.8%2B-3776AB?style=flat-square&logo=python&logoColor=white)
+![TensorFlow](https://img.shields.io/badge/TensorFlow%20%2F%20Keras-FF6F00?style=flat-square&logo=tensorflow&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?style=flat-square&logo=scikitlearn&logoColor=white)
 
----
+The model combines plantation operating records (production, planted area, palm age) with rainfall data. Rainfall from **6, 12 and 24 months earlier** is added as lagged features, because the oil palm's flowering-to-harvest cycle means weather long ago still shapes today's harvest.
 
-## 🚀 Fitur Utama
+## Results
 
-- **Sequence Generation & Anti-Leakage Scaling**: Teknik pembagian data *time-series* secara granular per Blok/Afdeling dan mekanisme penskalaan data yang ketat (hanya me-*fit* pada data training).
-- **Arsitektur Model LSTM Ganda**: 
-  - *Layer 1*: 64 Unit LSTM
-  - *Layer 2*: 32 Unit LSTM 
-  - *Regulasi*: 20% Dropout
-- **Performa Tinggi**: Model telah dievaluasi pada dataset uji (testing) *unseen data* dan mampu menekan angka kegagalan prediksi (*Mean Absolute Percentage Error / MAPE*) menembus batas psikologis **~20%** (Sangat akurat untuk konteks fluktuasi panen iklim ekstrem).
-- **Kalkulator Cerdas Interaktif**: Dashboard ramah pemula yang dibangun dengan **Streamlit**, memungkinkan pengguna awam (non-teknis) untuk menyimulasikan profil kebun mereka dan mendapatkan estimasi panen secara instan.
+Measured on 80 time-series sequences the model never saw during training (`output/hasil_training.txt`):
 
----
+| Metric | Value |
+| --- | --- |
+| MAE | 0.2922 t/ha |
+| RMSE | 0.3958 t/ha |
+| MAPE | 18.45% (target: below 20%) |
 
-## 📂 Struktur Direktori Proyek
+| Actual vs. predicted | Training history |
+| --- | --- |
+| ![Actual vs predicted yield](output/hasil_prediksi.png) | ![Training and validation loss](output/training_history.png) |
+
+<img src="output/scatter_prediksi.png" alt="Scatter of predicted vs actual yield" width="460">
+
+**Data at a glance:** 2,781 raw rows, 1,950 after removing duplicates, 63 blocks/divisions (`Entity_ID`), 14 input features, 529 sequences of 12 consecutive months. Split 70 / 15 / 15 (randomised): 370 training, 79 validation and 80 test sequences.
+
+## How it works
+
+- **Sequences per block.** Each sample is 12 consecutive months of one block, used to predict month 13. Blocks are kept separate so their histories never mix.
+- **Leak-free scaling.** Scalers are fitted on the training set only, then applied to validation and test data.
+- **Model.** LSTM (64 units) → Dropout 20% → LSTM (32 units) → Dropout 20% → Dense (1). Adam optimiser, learning rate 0.001, batch size 8; 32,673 parameters.
+- **Features** (`src/config.py`): `Production_Kg`, `Area_Ha`, `Palm_Age`, `Rainfall_CH`, `RainyDays_HH`, rainfall and rainy-day lags at 6/12/24 months, cyclical month encoding (`Month_Sin`, `Month_Cos`) and past `Yield_Ton_Ha`. Full definitions are in [`dataset/Data_Dictionary.md`](dataset/Data_Dictionary.md).
+- **Dashboard** (`app.py`). A Streamlit "smart calculator": enter a block profile and get an instant yield estimate.
+
+## Project structure
 
 ```text
-J:/prediksi hasil panen/
-│
-├── dataset/                  # Data operasional mentah & final
-│   ├── Master_LSTM_Final_Large.csv 
-│   └── Data_Dictionary.md      # Kamus resmi definisi variabel riset
-├── models/                   # Bobot arsitektur AI (Diekstrak pasca training)
-│   ├── lstm_yield_model.keras  # Jaringan Saraf Tiruan LSTM
-│   ├── scaler_X.pkl            # Objek normalisasi input
-│   └── scaler_y.pkl            # Objek normalisasi target
-├── notebooks/                # Jupyter Notebooks pelengkap skripsi
-│   ├── EDA_Analisis_Data.ipynb    # Eksplorasi Visual (Korelasi & Trend)
-│   └── Model_Interpretation.ipynb # Analisis Error & Residual AI
-├── output/                   # Grafik performa dan rekapan metrik
-│   ├── hasil_training.txt      # Catatan metrik (MAPE, RMSE, Akurasi)
-│   ├── hasil_prediksi.png      # Plot garis Aktual vs Prediksi
-│   ├── scatter_prediksi.png    # Plot sebaran nilai linear
-│   └── training_history.png    # Kurva performa Loss Function 
-├── src/                      # Modul Source Code (Logika AI Modular)
-│   ├── config.py               # Hyperparameters & Konstanta
-│   ├── data_preprocessing.py   # Logika Normalisasi & Sebaris Waktu
-│   ├── model_builder.py        # Topologi Pembentukan Layer Keras
-│   └── evaluate.py             # Logika Skor Analisis Matematika
-│
-├── app.py                    # Aplikasi Front-End Kalkulator Cerdas (Streamlit)
-├── train.py                  # Skrip Utama (Orkestrator/Runner) Pelatihan Model
-├── .gitignore                # Perisai file rahasia dari repositori luar
-├── requirements.txt          # Daftar spesifikasi Library Python
-└── README.md                 # Dokumentasi Induk Proyek (Anda di sini)
+├── app.py                  # Streamlit dashboard (yield calculator)
+├── train.py                # Training pipeline: preprocess → train → evaluate → export
+├── src/
+│   ├── config.py           # Paths, hyperparameters and feature list
+│   ├── data_preprocessing.py
+│   ├── model_builder.py    # Keras LSTM architecture
+│   └── evaluate.py         # MAE / RMSE / MAPE and plots
+├── notebooks/
+│   ├── EDA_Analisis_Data.ipynb       # Exploratory analysis (correlation, trends)
+│   └── Model_Interpretation.ipynb    # Error and residual analysis
+├── dataset/
+│   └── Data_Dictionary.md  # Variable definitions
+├── output/                 # Metrics report and charts from the last training run
+└── requirements.txt
 ```
 
----
+## Getting started
 
-## ⚙️ Persyaratan Instalasi Lingkungan (*Environment*)
-
-Pastikan Anda telah menginstal **Python 3.8+**. Disarankan untuk menggunakan lingkungan virtual (Anaconda / venv).
-
-1. Buka Terminal atau Command Prompt.
-2. Arahkan ke folder proyek ini.
-3. Instal seluruh *library* pendukung dengan menjalankan satu perintah berikut:
+Requires Python 3.8 or newer.
 
 ```bash
+git clone https://github.com/rzkydell/Crop-Yield-Prediction-Using-LSTM.git
+cd Crop-Yield-Prediction-Using-LSTM
 pip install -r requirements.txt
 ```
 
----
+> **Data and model weights are not included.** The plantation dataset (`dataset/Master_LSTM_Final_Large.csv`) is private, and the trained model and scalers (`models/*.keras`, `models/*.pkl`) are excluded by `.gitignore`. To run the project, place a CSV with the columns described in `dataset/Data_Dictionary.md` at that path.
 
-## 🏃 Cara Menjalankan Sistem
-
-### 1. Melatih Ulang Model (Training)
-
-Jika Anda memperoleh dataset baru atau ingin mengubah arsitektur parameter (seperti `BATCH_SIZE`, `LEARNING_RATE`, atau `EPOCHS` di dalam `src/config.py`), jalankan skrip pusat komando (Orkestrator):
+**Train the model.** Adjust `EPOCHS`, `BATCH_SIZE` or `LEARNING_RATE` in `src/config.py` if needed, then:
 
 ```bash
 python train.py
 ```
 
-Skrip ini akan secara otomatis:
-- Memproses data di folder `dataset/`.
-- Membangun memori pada otak LSTM dan melakukan training.
-- Mengekspor ulang *model* dan *scaler* ke folder `models/`.
-- Menyimpan grafik performa terbaru dan file metrik di folder `output/`.
+This preprocesses the data, trains the LSTM, writes the model and scalers to `models/`, and saves the metrics report and charts to `output/`.
 
-### 2. Membuka Aplikasi Kalkulator Panen (Web Dashboard)
-
-Untuk membuka antarmuka antar pengguna interaktif berbasis web, pastikan terminal (*Anaconda Prompt* / PowerShell) Anda berada di lokasi folder yang sama, lalu ketik:
+**Open the dashboard** (needs the files in `models/` from a training run):
 
 ```bash
 streamlit run app.py
 ```
 
-Browser Anda akan secara otomatis membuka halaman web di **http://localhost:8501/**. Fitur kalkulator web interaktif sudah siap memfasilitasi penebakan angka produktivitas kebun!
+The app opens at http://localhost:8501.
 
----
+## Notes
 
-## 📝 Catatan Tambahan
-Proyek ini dipersiapkan sebagai bagian dari implementasi penelitian akademis. Konfigurasi *Lagging* periode hujan ekstensif (6-24 bulan) merupakan kontribusi agronomi signifikan dalam model komputasi yang direalisasikan pada tesis ini. Dilarang menduplikasi metodologi tanpa penyertaan sitasi (*citation*).
+This project was prepared as part of academic research. If you build on the lagged-rainfall approach, please cite this repository.
 
-BY rzkydell
+## Author
+
+**Rizky Delianngi** · [Portfolio](https://rzkydell.vercel.app) · [GitHub](https://github.com/rzkydell)
+
+<details>
+<summary>Ringkasan (Bahasa Indonesia)</summary>
+
+Prediksi hasil panen kelapa sawit (ton/ha) per blok dari data 12 bulan terakhir (produksi, luas, umur tanaman, curah hujan dan hari hujan dengan *lag* 6/12/24 bulan) menggunakan LSTM dua lapis, dilengkapi dashboard Streamlit sebagai kalkulator panen. Pada 80 sekuens data uji: MAE 0,2922 t/ha, RMSE 0,3958 t/ha, MAPE 18,45%. Dataset dan bobot model tidak disertakan di repositori.
+
+</details>
